@@ -3,7 +3,7 @@ This repo attempts to demonstrate the basics of a CWL pipeline by
 taking a simple Python script and rendering it in a variety of
 possible frameworks and workflow description languages.
 
-The task is not really doing anything interesting, but the tasks
+The code is not really doing anything interesting, but the tasks
 can be used to demonstrate a few of the capabilities of each
 approach.
 
@@ -17,10 +17,11 @@ System prerequisites:
 sudo apt install python3-venv
 sudo apt install cwltool
 sudo apt install docker.io
+sudo apt-get install python3-dev
 ```
 This installs the CWL reference runner, which allows for easy execution
 of CWL pipelines on localhost. CWL is meant to be portable ("bring the
-computation to the data"), many of the advatages are in this portability.
+computation to the data"), many of the advantages are in this portability.
 
 Python prerequisites:
 ```
@@ -34,8 +35,8 @@ pip install -e requirements.txt
 ## Option 1: plain Python
 
 `plain_python.py` shows the basic function: 3 `CSV` files are created,
-and then converted into `TSV` files, and the md5 checksumsum is
-calculated of each output file. Running this script is:
+and then converted into `TSV` files, and the MD5 checksum is
+calculated for each output file. Running this script:
 ```
 python plain_python.py
 ```
@@ -84,16 +85,17 @@ next element provided as input parameter. If further parameters are
 used (for example, if the Python script has input parameters) then
 these are specified as input parameters in the CWL `inputs:` section.
 It is also possible to use default values, or to pre-process input
-values based on other information availabe at run-time.
+values based on other information available at run-time.
 
 ## Option 4: Intro to CWL: using Docker
 
 In many cases the code requires a specific environment, possibly also
 very specific versions of libraries, etc. One of the easiest ways to
 provide that is by using a Docker container to run the code defined in
-a CWL step.
+a CWL step. In fact, the Docker command used to run this is part of the
+standard output.
 
-In this example the requiremens are minimal: Python 3 and ruffus. This
+In this example the requirements are minimal: Python 3 and ruffus. This
 leads to a very simple `Dockerfile` suitable for this pipeline:
 ```
 FROM python:3.6-slim-buster
@@ -125,12 +127,12 @@ The ideal-case scenario is for all code to be inside of the Docker
 container, so that only parameters and input data are passed in.
 One advantage of this is that no code is required locally to run a
 CWL pipeline - everything is automatically obtained via a
-Docker repository at runtime, unless it is alread availabel locally.
+Docker repository at runtime, unless it is already available locally.
 
 ## Option 5: Separating Python into individual, separate steps
 
 For better clarity the CWL code is in subdirectory `cwl/`, and for
-convenience scripts are included in the Docker container as well,
+convenience scripts are included in the Docker image as well,
 so a new Docker image must be created (also, `ruffus` is no longer
 required, so the Docker image can be smaller):
 ```
@@ -145,7 +147,8 @@ maintenance.
 
 The existing demo pipeline has three steps: (1) generate CSV files,
 (2) transforming CSV files into TSV files, and (3) calculating MD5
-checksums of the TSV files.
+checksums of the TSV files. Here is a brief look at each of the new
+steps (Python and CWL):
 
 ### create_three_new_files
 
@@ -175,8 +178,8 @@ cwl-runner convert_csv_file_to_tsv.cwl --filename file1.csv
 ### calculate_md5
 
 This exists as command line call already; no additional code is
-neccesary. Each individual CWL step is run as its own task, it is
-easy to mix Python, shell, and any other language or tool necessary
+neccessary. Each individual CWL step is run as its own task, it is
+easy to mix Python, shell, or any other language or tool necessary
 in the same pipeline. Each CWL `CommandLineTool` acts as a black box,
 taking input, producing output.
 
@@ -199,14 +202,16 @@ Each individual step in a CWL pipeline is a CommandLineTool; while it
 is possible to combine multiple tools and workflows in the same `.cwl`
 file, it is better practice to keep the code separated.
 
-Each CLW CommandLineTool is an independent unit od code, which can be
+Each CLW CommandLineTool is an independent unit of code, which can be
 used to build pipelines; with each functional step to be programmed only
 once. And this being a standard, there are existing libraries of tools
 available; such as:
 * https://github.com/ncbi/cwl-ngs-workflows-cbb
 * https://github.com/common-workflow-library/bio-cwl-tools
 
-These repositories also contain whole pipelines, as CWL 'Workflow`s.
+These repositories also contain whole pipelines, as CWL `Workflow`s.
+This potentially speeds up development of new pipelines by already
+providing ready-to-use building blocks.
 
 ### CWL `Workflow`
 
@@ -229,8 +234,8 @@ Running this workflow for the same three files:
 ```
 cwl-runner workflow.cwl --FILENAME file1.csv --FILENAME file2.csv --FLENAME file3.csv
 ```
-(There are better ways to specift input parameters. Usually they would be
-provided in a `yaml` file; but for demo puroses it is interesting to see the
+(There are better ways to specify input parameters. Usually they would be
+provided in a `yaml` file; but for demo purposes it is interesting to see the
 command-line call in full.)
 
 ## Execution
@@ -242,26 +247,21 @@ sequentially in a single thread. This is good for test and development, but not
 for compute-intensive applications.
 
 Other CWL runners exist, which run the individual steps of a CWL workflow in
-parallel. Among the best examples is `toil`. (Which can be installed:
-```
-sudo apt-get install python3-dev
-pip install wheel
-pip install toil[cwl]
-```
-With this the workflow can be run, using a different runner, as (`toil` does
-require input parameters in a `yaml` file):
+parallel. Among the best examples is `toil`, which can be installed by:
+`pip install toil[cwl]`. With this the workflow can be run using a different
+runner (also: `toil` does require input parameters in a `yaml` file):
 ```
 toil-cwl-runner workflow.cwl workflow.yaml
 ```
-Toil opens up many more options. For example, Toil can set up remote execution
+`Toil` opens up many more options. For example, Toil can set up remote execution
 environments (AWS, Slurm, etc..) and then distribute the workflow across that
-environment, so rining a workflow id not tied to locally available resources.
+environment, so running a workflow is not tied to locally available resources.
 
 Remote execution is one of the biggest advantages of CWL. One of the driving
 forces behind this is to enable moving the compute closer to the data, as the
 size of data often makes it infeasible to move closer to where local compute
 resources may be available. This allows for a separation of where the results
-of pipelines are needed (e.g. a Web server, a reserachers's laptop, ...) and
+of pipelines are needed (e.g. a Web server, a researcher's laptop, ...) and
 where the computations are carried out.
 
 ### GA4GH
@@ -272,9 +272,12 @@ The standard responsible for executing code is the Task Execution Service (TES);
 one example of a server implementing TES is `Funnel`:
 * https://github.com/ohsu-comp-bio/funnel
 
+There are many other applicable and useful standards; but this is not the place
+to describe them.
+
 # More Complex Example
 
-This repository just coveres the basics of what CWL is capable of. A more
+This repository just covers the basics of what CWL is capable of. A more
 interesting example is available within the context of ELIXIR Europe's
 implementation of the GA4GH standards:
 * https://github.com/elixir-cloud-aai/demo-workflows/tree/dev/cwl
