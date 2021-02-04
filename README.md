@@ -17,7 +17,7 @@ System prerequisites:
 sudo apt install python3-venv
 sudo apt install cwltool
 sudo apt install docker.io
-sudo apt-get install python3-dev
+sudo apt install python3-dev
 ```
 This installs the CWL reference runner, which allows for easy execution
 of CWL pipelines on localhost. CWL is meant to be portable ("bring the
@@ -66,7 +66,7 @@ for another step. Order can also be enforced manually.
 
 CWL (Common Workflow Language) differs from Ruffus by being a language
 to describe a workflow, instead of a framework that deals with all
-aspects or code and execution. CWL describes what should be done,
+aspects of code and execution. CWL describes what should be done,
 without prescribing what language, environment, etc. must be used.
 
 This allows for a (not recommended, but very easy) way to convert
@@ -92,8 +92,7 @@ values based on other information available at run-time.
 In many cases the code requires a specific environment, possibly also
 very specific versions of libraries, etc. One of the easiest ways to
 provide that is by using a Docker container to run the code defined in
-a CWL step. In fact, the Docker command used to run this is part of the
-standard output.
+a CWL step.
 
 In this example the requirements are minimal: Python 3 and ruffus. This
 leads to a very simple `Dockerfile` suitable for this pipeline:
@@ -101,7 +100,7 @@ leads to a very simple `Dockerfile` suitable for this pipeline:
 FROM python:3.6-slim-buster
 RUN pip install ruffus
 ```
-This should be built locally using (the tag is used later):
+This should be built locally using (the tag is used in the CWL code):
 ```
 docker build . -t pipeline:1
 ```
@@ -114,7 +113,8 @@ hints:
 ```
 The cwl runner takes care of mounting the working directories and paths
 to the Docker container, and running the `baseCommand` inside of
-Docker, instead of in the local environment.
+Docker, instead of in the local environment.  In fact, the Docker commands
+used to run each step are part of the standard output.
 
 Both of these work:
 ```
@@ -146,7 +146,7 @@ shared and re-used by other pipelines, reducing code duplication and
 maintenance.
 
 The existing demo pipeline has three steps: (1) generate CSV files,
-(2) transforming CSV files into TSV files, and (3) calculating MD5
+(2) transform CSV files into TSV files, and (3) calculate MD5
 checksums of the TSV files. Here is a brief look at each of the new
 steps (Python and CWL):
 
@@ -155,7 +155,7 @@ steps (Python and CWL):
 In `ruffus` this function is called three times by providing the
 `originate` step with a list of three input parameters. CWL works the
 same way; so the script itself needs to generate only 1 file, and the
-CWL pipeline automatically calles it with three input values.
+CWL pipeline automatically calls it with three input values.
 
 This step can be tested and run in isolation, creating one file,
 named `file1.csv`:
@@ -179,7 +179,7 @@ cwl-runner convert_csv_file_to_tsv.cwl --filename file1.csv
 
 This exists as command line call already; no additional code is
 neccessary. Each individual CWL step is run as its own task, it is
-easy to mix Python, shell, or any other language or tool necessary
+easy to mix Python, Shell, or any other languages or tools necessary
 in the same pipeline. Each CWL `CommandLineTool` acts as a black box,
 taking input, producing output.
 
@@ -253,7 +253,7 @@ runner (also: `toil` does require input parameters in a `yaml` file):
 ```
 toil-cwl-runner workflow.cwl workflow.yaml
 ```
-`Toil` opens up many more options. For example, Toil can set up remote execution
+`Toil` opens up many more options. For example, `Toil` can set up remote execution
 environments (AWS, Slurm, etc..) and then distribute the workflow across that
 environment, so running a workflow is not tied to locally available resources.
 
@@ -297,3 +297,5 @@ cwl-runner workflow.cwl workflow.yml
 toil-cwl-runner workflow.cwl workflow.yml
 ```
 (Although the paths in the `workflow.yml` file may need to be adjusted).
+
+The RD Connect project: https://rd-connect.eu/
