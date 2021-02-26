@@ -278,7 +278,7 @@ Setup instrauctions are here: https://toil.readthedocs.io/en/latest/running/clou
 For this local demo the Kubernetes cluster used is `minikube`, and the
 deployment mechanism uses `helm`. This installs a Kubernetes environment locally.
 
-The prerequisites are: `kubectl`, `minikube`, `kubeadm`, and `helm`.
+The prerequisites are: `kubectl`, `minikube`, and `helm`.
 * kubectl (https://kubernetes.io/docs/tasks/tools/install-kubectl/)
   ```
   curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -290,16 +290,6 @@ The prerequisites are: `kubectl`, `minikube`, `kubeadm`, and `helm`.
   curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
   sudo dpkg -i minikube_latest_amd64.deb
   rm minikube_latest_amd64.deb
-  ```
-* kubeadmin (https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
-  ```
-  curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-  cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
-  deb https://apt.kubernetes.io/ kubernetes-xenial main
-  EOF
-  sudo apt-get update
-  sudo apt-get install -y kubelet kubeadm
-  sudo apt-mark hold kubelet kubeadm
   ```
 * helm
   ```
@@ -316,7 +306,7 @@ git clone https://github.com/arvados/arvados-k8s.git
 cd arvados-k8s/charts/arvados
 ```
 The Arvados server will be available at the IP address of minikube. It also needs
-a SSL certificate to run services. With ARvados running, return to the cwl
+a SSL certificate to run services. With Arvados running, return to the cwl
 directory, and get the CWL runner for Arvados:
 ```
 minikube start
