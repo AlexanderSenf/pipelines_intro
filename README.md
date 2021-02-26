@@ -10,7 +10,7 @@ approach.
 ## Setup
 
 Not much is required. This code is written and tested in Ubuntu
-18.05 LTS and Python version 3.6.9. Recommended setup steps are:
+18.04 LTS and Python version 3.6.9. Recommended setup steps are:
 
 System prerequisites:
 ```
@@ -25,7 +25,7 @@ computation to the data"), many of the advantages are in this portability.
 
 Python prerequisites:
 ```
-git pull https://github.com/AlexanderSenf/pipelines_intro.git
+git clone https://github.com/AlexanderSenf/pipelines_intro.git
 cd pipelines_intro
 python3 -m venv pipelines-env
 source pipelines-env/bin/activate
@@ -264,13 +264,139 @@ resources may be available. This allows for a separation of where the results
 of pipelines are needed (e.g. a Web server, a researcher's laptop, ...) and
 where the computations are carried out.
 
+## Execution in Kubernetes
+
+Using `Toil` as an example, execution can be directed towards a Kubernetes
+environment with the option `--batchSystem kubernetes`. All it needs is a Toil
+node configured for Kubernetes (and AWS S3) This could also be done locally
+with `minikube`.
+
+Setup instrauctions are here: https://toil.readthedocs.io/en/latest/running/cloud/kubernetes.html
+
+## Using yet another CWL execution engine for Kubernetes: Arvados
+
+For this local demo the Kubernetes cluster used is `minikube`, and the
+deployment mechanism uses `helm`. This installs a Kubernetes environment locally.
+
+The prerequisites are: `kubectl`, `minikube`, `kubeadm`, and `helm`.
+* kubectl (https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+  ```
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  rm kubectl
+  ```
+* minikube (https://minikube.sigs.k8s.io/docs/start/)
+  ```
+  curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+  sudo dpkg -i minikube_latest_amd64.deb
+  rm minikube_latest_amd64.deb
+  ```
+* kubeadmin (https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
+  ```
+  curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+  cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+  deb https://apt.kubernetes.io/ kubernetes-xenial main
+  EOF
+  sudo apt-get update
+  sudo apt-get install -y kubelet kubeadm
+  sudo apt-mark hold kubelet kubeadm
+  ```
+* helm
+  ```
+  curl -LO https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz
+  tar -zxvf helm-v3.5.2-linux-amd64.tar.gz
+  mv linux-amd64/helm ../pipelines-env/bin/
+  rm helm-v3.5.2-linux-amd64.tar.gz
+  rm -rf linux-amd64
+  ```
+
+Arvados can then be deployed (https://doc.arvados.org/install/arvados-on-kubernetes-minikube.html)
+```
+git clone https://github.com/arvados/arvados-k8s.git
+cd arvados-k8s/charts/arvados
+```
+The Arvados server will be available at the IP address of minikube. It also needs
+a SSL certificate to run services. With ARvados running, return to the cwl
+directory, and get the CWL runner for Arvados:
+```
+minikube start
+./cert-gen.sh `minikube ip`
+helm install arvados . --set externalIP=`minikube ip`
+./minikube-external-ip.sh
+export ARVADOS_API_TOKEN=thisisnotaverygoodsuperusersecretstring00000000000
+export ARVADOS_API_HOST=`minikube ip`:444
+export ARVADOS_API_HOST_INSECURE=true
+cd ../../..
+pip install arvados-cwl-runner
+```
+
+### Running the workflow
+
+With this the pipeline can be run on Kubernetes:
+```
+arvados-cwl-runner workflow.cwl workflow.yaml
+```
+The output is identical again, but the pipeline was now run in `minikube`.
+If `Arvados` is configured with an existing remote Kubernetes setup, the same
+command would run the workflow remotely. Using the Apache 2.0 licensed Arvados
+SDK programmatic access to the API allows easy integration to code.
+
+### Shutting down again
+
+```
+helm del arvados
+minikube stop
+```
+
+### Alternatives
+
+There are several options for running CWL pipeline in Kubernetes; `Toil` is
+just one of them. Here are some example of other execution environments:
+
+* https://toil.ucsc-cgl.org/
+  A scalable, efficient, cross-platform pipeline management system written
+  entirely in Python and designed around the principles of functional programming.
+  Scalability: https://www.biorxiv.org/content/10.1101/062497v1.full
+* https://docs.reana.io/
+  This is the system developed by CERN. It comes with instruction on how to
+  install REANA in Kubernetes via Helm charts. Software from CERN has the
+  advantage that it is genrally designed to work with much larger volumes of
+  data than most other domains, including Genomics.
+* https://github.com/Duke-GCB/calrissian
+  Calrissian is a CWL implementation designed to run inside a Kubernetes cluster.
+  Its goal is to be highly efficient and scalable, taking advantage of high
+  capacity clusters to run many steps in parallel.
+* https://github.com/uc-cdis/mariner
+  Mariner is a workflow execution service written in Go for running CWL
+  workflows on Kubernetes. Mariner's API is an implementation of the GA4GH
+  standard WES API.
+* https://arvados.org/
+  Arvados allows bioinformaticians run and scale compute-intensive workflows,
+  developers create biomedical applications, and IT administrators manage large
+  compute and storage resources.  100% free and open software that you can
+  control. Software that is developed in public, backed by both strong
+  commercial support and an active community.
+
+### License considerations
+
+* Toil: Apache 2.0
+* REANA: MIT License
+* Calrissian: MIT License
+* Mariner: Apache 2.0
+* Arvados:
+  * Server side: GNU Affero GPL version 3
+  * Client SDK: Apache 2.0
+
 ### GA4GH
 
 Within the GA4GH (Global Alliance for Genomics and Health) there is active work
 on a set of standards to enable cloud-based execution of workflows (CWL, WDL, ...).
 The standard responsible for executing code is the Task Execution Service (TES); and
-one example of a server implementing TES is `Funnel`:
-* https://github.com/ohsu-comp-bio/funnel
+one example of a server implementing TES is `Funnel` (https://github.com/ohsu-comp-bio/funnel).
+
+`Mariner` is an example of a CWL execution engine implementing the Workflow
+Execution Service (WES) API, which makes it compatible with all software and
+web sites implementing access to WES.
 
 There are many other applicable and useful standards; but this is not the place
 to describe them.

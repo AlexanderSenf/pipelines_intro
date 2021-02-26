@@ -4,3 +4,6 @@ file*
 
 # Environment
 pipelines-env/
+
+# Git checkouts
+cwl/arvados-k8s/
